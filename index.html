@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>•พื้นหลังสุดเท่ รวมลิงก์เว็บไซต์•</title>
+    <!-- Google Fonts & Font Awesome 6 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- CSS ภายนอก -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <!-- header + theme toggle -->
+    <div class="header">
+        <div class="title-section">
+            <h1>
+                <i class="fas fa-mountain-sun"></i> 
+                LinkTrojan • Dark Aura
+            </h1>
+            <p>•</p>
+        </div>
+        <div class="actions-top">
+            <button class="theme-toggle" id="themeToggleBtn">
+                <i class="fas fa-moon"></i> 
+                <span>ธีมมืด</span>
+            </button>
+            <button class="reset-default-btn" id="resetDefaultBtn">
+                <i class="fas fa-rotate-left"></i> 
+                <span>รีเซ็ตเริ่มต้น</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- search bar -->
+    <div class="search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="ค้นหาชื่อเว็บไซต์ หรือ URL ..." autocomplete="off">
+    </div>
+
+    <!-- dynamic links grid -->
+    <div id="linksContainer" class="links-grid"></div>
+
+    <!-- add link form -->
+    <div class="form-section">
+        <div class="form-title">
+            <i class="fas fa-plus-circle" style="color: #90cdf4;"></i> 
+            เพิ่มลิงก์ใหม่
+        </div>
+        <div class="link-form" id="addLinkForm">
+            <div class="form-group">
+                <input type="text" id="linkName" placeholder="ชื่อเว็บไซต์ (เช่น Google, YouTube)" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <input type="text" id="linkUrl" placeholder="URL (https://example.com)" autocomplete="off">
+            </div>
+            <button type="submit" class="add-btn" id="submitLinkBtn">
+                <i class="fas fa-save"></i> เพิ่มลิงก์
+            </button>
+        </div>
+        <div class="danger-zone">
+            <button class="btn-outline-danger" id="clearAllBtn">
+                <i class="fas fa-trash-alt"></i> ล้างลิงก์ทั้งหมด
+            </button>
+        </div>
+    </div>
+    <footer>
+        <i class="fas fa-image"></i> พื้นหลัง: Pixabay (black marble) • ข้อมูลบันทึกใน localStorage • ไฟล์เดียว พกพาสะดวก
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script src="script1.js"></script>   <!-- optional -->
+<script src="script2.js"></script>   <!-- optional -->
+<script src="script3.js"></script>   <!-- optional -->
+<script src="script4.js"></script>   <!-- ตัวป้องกัน -->  
+</body>
+</html>
