@@ -1,6 +1,6 @@
 // ------------------- UTILS -------------------
 function generateId() {
-    return Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+    return crypto.randomUUID(); // unique 100%
 }
 
 function normalizeUrl(rawUrl) {
@@ -26,14 +26,18 @@ function getDefaultLinks() {
         { id: generateId(), name: "พระลึกลับแดนสยาม", url: "https://taboonchai1991-ops.github.io/-Tro-library-BP-/" },
         { id: generateId(), name: "notepadpro", url: "https://grassjellyj-cpu288.github.io/notepad-pro/" },
         { id: generateId(), name: "Netflix", url: "https://www.netflix.com" },
-        { id: generateId(), name: "ChatGPT", url: "https://chat.openai.com" }
-                                        
+        { id: generateId(), name: "ChatGPT", url: "https://chat.openai.com" },
+        { id: generateId(), name: "Tromp4", url: "https://taboonchai1991-ops.github.io/Tromp4/" },
+        { id: generateId(), name: "Remove-background", url: "https://taboonchai1991-ops.github.io/Remove-background-BP/" }
     ];
 }
 
+// ------------------- STATE -------------------
 let links = [];
 let currentFilter = "";
+let searchTimeout = null;
 
+// ------------------- DOM REFS -------------------
 const linksContainer = document.getElementById('linksContainer');
 const searchInput = document.getElementById('searchInput');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -42,26 +46,79 @@ const clearAllBtn = document.getElementById('clearAllBtn');
 const submitLinkBtn = document.getElementById('submitLinkBtn');
 const linkNameInput = document.getElementById('linkName');
 const linkUrlInput = document.getElementById('linkUrl');
+const addLinkForm = document.getElementById('addLinkForm');
 
+// ------------------- TOAST SYSTEM -------------------
+function showToast(message, type = 'info', duration = 3000) {
+    const existing = document.querySelector('.toast-container');
+    if (!existing) {
+        const container = document.createElement('div');
+        container.className = 'toast-container';
+        container.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+            max-width: 350px; width: 100%;
+        `;
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.style.cssText = `
+        background: ${type === 'success' ? '#2e7d32' : type === 'error' ? '#c62828' : '#1e3a5f'};
+        color: #fff; padding: 12px 20px; border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        font-size: 0.95rem; backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.15);
+        animation: slideIn 0.3s ease;
+        display: flex; align-items: center; gap: 10px;
+    `;
+    toast.innerHTML = `
+        <span>${message}</span>
+        <button style="background:none;border:none;color:inherit;font-size:1.2rem;cursor:pointer;margin-left:auto;">&times;</button>
+    `;
+    toast.querySelector('button').addEventListener('click', () => toast.remove());
+    document.querySelector('.toast-container').appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, duration);
+}
+
+// เพิ่ม keyframe animation สำหรับ toast
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(40px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+`;
+document.head.appendChild(styleSheet);
+
+// ------------------- STORAGE -------------------
 function saveLinksToLocal() {
-    localStorage.setItem('linkhub_links', JSON.stringify(links));
+    try {
+        localStorage.setItem('linkhub_links', JSON.stringify(links));
+    } catch (e) {
+        console.warn('ไม่สามารถบันทึกข้อมูล:', e);
+        showToast('ไม่สามารถบันทึกข้อมูลลง Local Storage', 'error');
+    }
 }
 
 function loadLinksFromLocal() {
-    const stored = localStorage.getItem('linkhub_links');
-    if (stored) {
-        try {
+    try {
+        const stored = localStorage.getItem('linkhub_links');
+        if (stored) {
             const parsed = JSON.parse(stored);
             if (Array.isArray(parsed)) {
                 links = parsed;
                 return;
             }
-        } catch(e) {}
-    }
+        }
+    } catch(e) {}
     links = getDefaultLinks();
     saveLinksToLocal();
 }
 
+// ------------------- CRUD OPERATIONS -------------------
 function resetToDefault() {
     if (confirm("⚠️ รีเซ็ตจะคืนลิงก์เริ่มต้น และลบลิงก์เพิ่มเองทั้งหมด ยืนยัน?")) {
         links = getDefaultLinks();
@@ -69,27 +126,51 @@ function resetToDefault() {
         currentFilter = "";
         searchInput.value = "";
         renderLinks();
+        showToast('รีเซ็ตเป็นลิงก์เริ่มต้นเรียบร้อย', 'success');
     }
 }
 
 function clearAllLinks() {
-    if (links.length === 0) return alert("ไม่มีลิงก์ให้ลบ");
+    if (links.length === 0) {
+        showToast('ไม่มีลิงก์ให้ลบ', 'info');
+        return;
+    }
     if (confirm("🗑️ ลบลิงก์ทั้งหมด (ไม่สามารถกู้คืน) ยืนยัน?")) {
         links = [];
         saveLinksToLocal();
         currentFilter = "";
         searchInput.value = "";
         renderLinks();
+        showToast('ลบลิงก์ทั้งหมดเรียบร้อย', 'success');
     }
 }
 
-function addNewLink() {
+function addNewLink(e) {
+    e.preventDefault(); // ป้องกัน form submit ปกติ
     let name = linkNameInput.value.trim();
     let rawUrl = linkUrlInput.value.trim();
-    if (!name) return alert("กรุณากรอกชื่อเว็บไซต์");
-    if (!rawUrl) return alert("กรุณากรอก URL");
+    if (!name) {
+        showToast('กรุณากรอกชื่อเว็บไซต์', 'error');
+        linkNameInput.focus();
+        return;
+    }
+    if (!rawUrl) {
+        showToast('กรุณากรอก URL', 'error');
+        linkUrlInput.focus();
+        return;
+    }
     const normalized = normalizeUrl(rawUrl);
-    if (!normalized) return alert("URL ไม่ถูกต้อง (ตัวอย่าง: https://example.com หรือ example.com)");
+    if (!normalized) {
+        showToast('URL ไม่ถูกต้อง (ตัวอย่าง: https://example.com)', 'error');
+        linkUrlInput.focus();
+        return;
+    }
+    // ตรวจสอบซ้ำ (ไม่บังคับ แต่แนะนำ)
+    const duplicate = links.some(link => link.url === normalized);
+    if (duplicate) {
+        showToast('มีลิงก์นี้อยู่ในรายการแล้ว', 'error');
+        return;
+    }
     const newLink = { id: generateId(), name: name, url: normalized };
     links.unshift(newLink);
     saveLinksToLocal();
@@ -99,16 +180,22 @@ function addNewLink() {
     searchInput.value = "";
     renderLinks();
     linkNameInput.focus();
+    showToast(`เพิ่ม "${name}" สำเร็จ`, 'success');
 }
 
 function deleteLinkById(id) {
+    const linkToDelete = links.find(link => link.id === id);
+    if (!linkToDelete) return;
+    if (!confirm(`คุณแน่ใจว่าต้องการลบ "${linkToDelete.name}"?`)) return;
     const newLinks = links.filter(link => link.id !== id);
     if (newLinks.length === links.length) return;
     links = newLinks;
     saveLinksToLocal();
     renderLinks();
+    showToast(`ลบ "${linkToDelete.name}" แล้ว`, 'info');
 }
 
+// ------------------- FILTER & RENDER -------------------
 function filterLinks() {
     if (!currentFilter.trim()) return [...links];
     const lowerFilter = currentFilter.toLowerCase();
@@ -140,7 +227,7 @@ function renderLinks() {
                             ${escapeHtml(link.name)}
                         </a>
                     </div>
-                    <button class="delete-btn" data-id="${link.id}" title="ลบลิงก์">
+                    <button class="delete-btn" data-id="${link.id}" title="ลบลิงก์" aria-label="ลบลิงก์">
                         <i class="fas fa-trash-can"></i>
                     </button>
                 </div>
@@ -156,6 +243,7 @@ function renderLinks() {
         `;
     }
     linksContainer.innerHTML = cardsHtml;
+    // ผูก event ลบ
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -166,12 +254,14 @@ function renderLinks() {
 }
 
 function escapeHtml(str) {
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return str.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 function truncateUrl(url, maxLen) {
@@ -179,12 +269,42 @@ function truncateUrl(url, maxLen) {
     return url.slice(0, maxLen) + '…';
 }
 
+// ------------------- SEARCH (with debounce) -------------------
 function onSearchInput() {
-    currentFilter = searchInput.value;
-    renderLinks();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        currentFilter = searchInput.value;
+        renderLinks();
+        // แสดง/ซ่อนปุ่ม clear
+        clearSearchBtn.style.display = currentFilter ? 'block' : 'none';
+    }, 300);
 }
 
-// ฟังก์ชันธีม
+// ------------------- CLEAR SEARCH BUTTON -------------------
+const clearSearchBtn = document.createElement('button');
+clearSearchBtn.type = 'button';
+clearSearchBtn.innerHTML = '&times;';
+clearSearchBtn.style.cssText = `
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; font-size: 1.4rem; color: #888;
+    cursor: pointer; display: none; padding: 0 4px;
+`;
+clearSearchBtn.setAttribute('aria-label', 'ล้างคำค้นหา');
+clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    currentFilter = '';
+    clearSearchBtn.style.display = 'none';
+    renderLinks();
+    searchInput.focus();
+});
+// ใส่ปุ่มใน container ของ search (ต้องมี wrapper)
+const searchWrapper = searchInput.parentNode;
+if (searchWrapper) {
+    searchWrapper.style.position = 'relative';
+    searchWrapper.appendChild(clearSearchBtn);
+}
+
+// ------------------- THEME -------------------
 function initTheme() {
     const savedTheme = localStorage.getItem('linkhub_theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -210,18 +330,29 @@ function toggleTheme() {
     updateThemeButtonUI(isDark);
 }
 
+// ------------------- INITIALIZATION -------------------
 function init() {
     loadLinksFromLocal();
     initTheme();
     renderLinks();
+
+    // Event listeners
     searchInput.addEventListener('input', onSearchInput);
     resetDefaultBtn.addEventListener('click', resetToDefault);
     clearAllBtn.addEventListener('click', clearAllLinks);
-    submitLinkBtn.addEventListener('click', addNewLink);
-    document.getElementById('addLinkForm').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') e.preventDefault(), addNewLink();
-    });
     themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // ใช้ form submit แทน click เพื่อให้ Enter ทำงาน
+    addLinkForm.addEventListener('submit', addNewLink);
+    // ป้องกันการ submit ซ้ำถ้ากดปุ่ม
+    submitLinkBtn.addEventListener('click', (e) => {
+        // จะถูกเรียกผ่าน form submit อยู่แล้ว แต่กัน event ซ้อน
+    });
+    // แต่อย่างไรก็ตาม ถ้าผู้ใช้กดปุ่มเอง form จะถูก submit
+    // เราจึงไม่ต้องมี event click ซ้ำ
+
+    // โหลดเสร็จให้ focus ที่ช่องค้นหา
+    searchInput.focus();
 }
 
 document.addEventListener('DOMContentLoaded', init);
