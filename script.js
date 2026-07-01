@@ -28,9 +28,6 @@ function getDefaultLinks() {
         { id: generateId(), name: "Netflix", url: "https://www.netflix.com" },
         { id: generateId(), name: "ChatGPT", url: "https://chat.openai.com" }
        { id: generateId(), name: "ค็อบรูป", url: " https://grassjellyj-cpu288.github.io/Crop-Studio-/" }                                   
-        
-     
-    
     ];
 }
 
