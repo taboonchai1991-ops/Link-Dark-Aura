@@ -26,7 +26,7 @@ function getDefaultLinks() {
         { id: generateId(), name: "พระลึกลับแดนสยาม", url: "https://taboonchai1991-ops.github.io/-Tro-library-BP-/" },
         { id: generateId(), name: "notepadpro", url: "https://grassjellyj-cpu288.github.io/notepad-pro/" },
         { id: generateId(), name: "Netflix", url: "https://www.netflix.com" },
-        { id: generateId(), name: "ChatGPT", url: "https://chat.openai.com" },
+        { id: generateId(), name: "Chat", url: "https://taboonchai1991-ops.github.io/Tromp4/" },
         { id: generateId(), name: "Tromp4", url: "https://taboonchai1991-ops.github.io/Tromp4/" },
         { id: generateId(), name: "Remove-background", url: "https://taboonchai1991-ops.github.io/Remove-background-BP/" }
     ];
